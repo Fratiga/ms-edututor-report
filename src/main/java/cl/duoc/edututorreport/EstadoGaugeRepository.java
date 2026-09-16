@@ -1,0 +1,6 @@
+package cl.duoc.edututorreport;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface EstadoGaugeRepository extends JpaRepository<EstadoGauge, String> {
+}
