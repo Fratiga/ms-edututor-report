@@ -9,6 +9,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,10 +37,13 @@ public class ReportEventListener {
 
 	@Transactional
 	@KafkaListener(topics = "sessions.events", groupId = "report-service-v1")
-	public void onSessionEvent(@Payload Map<String, Object> evento) {
+	public void onSessionEvent(
+			@Payload Map<String, Object> evento,
+			@Header(KafkaHeaders.RECEIVED_PARTITION) int particion,
+			@Header(KafkaHeaders.OFFSET) long offset) {
 		String eventId = (String) evento.get("eventId");
 		if (processedEvents.existsById(eventId)) {
-			log.info("Evento {} ya aplicado a las métricas, se ignora", eventId);
+			log.info("Evento {} ya aplicado a las métricas (kafka p{} o{}), se ignora", eventId, particion, offset);
 			return;
 		}
 
@@ -70,7 +75,7 @@ public class ReportEventListener {
 
 		metricaHoraRepo.save(hora);
 		processedEvents.save(new ProcessedEvent(eventId));
-		log.info("Aplicado eventId={} tipo={} a las métricas", eventId, tipo);
+		log.info("Aplicado kafka p{} o{} eventId={} tipo={} a las métricas", particion, offset, eventId, tipo);
 	}
 
 	private MetricaHora horaBucketDe(Instant instante) {
